@@ -17,14 +17,14 @@ export class Plugin extends PluginCore {
             The page itself is implemented in the _ServerSettingsPage.ts 
         */
         customerSettingsPage: {
-            id: "BPPCustomerSettings",
-            title: "BPP customer settings page",
-            type: "BPPcs",
+            id: "GDACustomerSettings",
+            title: "GDA customer settings page",
+            type: "GDAcs",
             enabled: true,
             defaultSettings: {
                 myServerSetting: "default value for setting defined in Interfaces.ts",
             },
-            settingName: "BPP_settings",
+            settingName: "GDA_settings",
             help: "This is my help text",
             helpUrl:"https://docs23.matrixreq.com"
         },
@@ -32,14 +32,14 @@ export class Plugin extends PluginCore {
             The page itself is implemented in the _ProjectSetingsPage.ts 
         */
         projectSettingsPage: {
-            id: "BPPprojectsettings",
-            title: "BPP projectsettings page",
-            type:"BPPps",
+            id: "GDAprojectsettings",
+            title: "GDA projectsettings page",
+            type:"GDAps",
             enabled: true,
             defaultSettings: {
                 myProjectSetting:  "default value for setting defined in Interfaces.ts",
             },
-            settingName: "BPP_settings",
+            settingName: "GDA_settings",
             help: "This is my help text",
             helpUrl:"https://docs23.matrixreq.com"
         },
@@ -48,17 +48,17 @@ export class Plugin extends PluginCore {
         */
         menuToolItem: {
             enabled: true,
-            title:"matrix-ui-plugin-boilerplate-menuitem",
+            title:"matrix_ui_generic_dashboard-menuitem",
         },
         /*  Add a custom field to enter some data in the UI - set enabled to false if not needed.
             The field itself is implemented in the _Control.ts 
         */
         field: {
             enabled: true,
-            fieldType: "matrix-ui-plugin-boilerplate",
-            title: "matrix-ui-plugin-boilerplate-field",
+            fieldType: "matrix_ui_generic_dashboard",
+            title: "matrix_ui_generic_dashboard-field",
             fieldConfigOptions: {
-                id: "matrix-ui-plugin-boilerplate",
+                id: "matrix_ui_generic_dashboard",
                 capabilities: {
                     canBePublished: false,
                     canBeReadonly: true,
@@ -69,7 +69,7 @@ export class Plugin extends PluginCore {
                 },
                 class: "",
                 help: "",
-                label: "matrix-ui-plugin-boilerplate-field",
+                label: "matrix_ui_generic_dashboard-field",
             }
         },
         /*  Add a dashboard inside a project - set enabled to false if not needed.
@@ -77,8 +77,8 @@ export class Plugin extends PluginCore {
         */
         dashboard: {        
             
-            id:"BPP",
-            title: "BPP dashboard page",
+            id:"GDA",
+            title: "GDA dashboard page",
             enabled: true,
             icon: "fal fa-cog",
             parent: "DASHBOARDS",

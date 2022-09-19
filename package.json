@@ -1,9 +1,9 @@
 {
-  "name": "matrix-ui-plugin-boilerplate",
+  "name": "matrix_ui_generic_dashboard",
   "version": "1.0.0",
-  "description": "Awesome matrix-ui-plugin-boilerplate created by francoischasseur",
+  "description": "Awesome matrix_ui_generic_dashboard created by francoischasseur",
   "repository": {
-    "url": "https://github.com/MatrixRequirements/matrix-ui-plugin-boilerplate"
+    "url": "https://github.com/francoischasseur/matrix_ui_generic_dashboard"
   },
   "scripts": {
     "pretty": "prettier --write src/",
@@ -11,8 +11,8 @@
     "check": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src --ext .ts",
-    "parcel": "parcel watch src/BPP/Main.ts --public-url /static/js/ --out-dir /home/clouds/clouds/custom/js --no-hmr",
-    "parcel-dist": "parcel build src/BPP/Main.ts --public-url /static/js/ --out-dir ./dist"
+    "parcel": "parcel watch src/GDA-43ceada4-0d13-418d-a0df-0f319cbd566e/Main.ts --public-url /static/js/ --out-dir /home/clouds/clouds/custom/js --no-hmr",
+    "parcel-dist": "parcel build src/GDA-43ceada4-0d13-418d-a0df-0f319cbd566e/Main.ts --public-url /static/js/ --out-dir ./dist"
   },
   "author": "",
   "license": "ISC",

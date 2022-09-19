@@ -1,6 +1,6 @@
-# matrix-ui-plugin-boilerplate plugin
+# matrix_ui_generic_dashboard plugin
 
-![Plugin Build](https://github.com/MatrixRequirements/matrix-ui-plugin-boilerplate/actions/workflows/main.yml/badge.svg)
+![Plugin Build](https://github.com/francoischasseur/matrix_ui_generic_dashboard/actions/workflows/main.yml/badge.svg)
 
 Matrix UI Plugins are implementations of the IPlugin interface.
 They can be registered in the plugin manager at startup and will be queried
@@ -28,7 +28,7 @@ you can use a special developer setup and a GitHub action to build the code.
 * Reload the browser
 
 This should install the script on the server and load it into the browser. The
-naming reflects the repository name, for example `https://developer.matrixreq.net/static/js/GitHub-MatrixRequirements_boiler-plate.js`
+naming reflects the repository name, for example `https://developer.matrixreq.net/static/js/GitHub-francoischasseur_boiler-plate.js`
 
 ## APIs
 Matrix has a very large set of APIs which you can explore in the interface definitions
