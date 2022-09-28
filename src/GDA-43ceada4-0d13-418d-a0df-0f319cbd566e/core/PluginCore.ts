@@ -1,10 +1,9 @@
 import { Control } from "../Control";
-import { IServerSettings, IProjectSettings } from "../Interfaces";
+import { IServerSettings, IProjectSettings, IGenericDashboard } from "../Interfaces";
 import { IControlOptions } from "./ControlCore";
 import { Plugin } from "../Main";
 import { ProjectSettingsPage } from "../ProjectSettingsPage";
 import { ServerSettingsPage } from "../ServerSettingsPage";
-import { DashboardPage } from "../DashboardPage";
 import { Tool } from "../Tools";
 
 // eslint-disable-next-line no-unused-vars
@@ -68,6 +67,8 @@ export interface IPluginFeatureField extends IPluginFeatureBase {
 }
 
 export interface IPluginSettingPage<T> {
+    renderDashboardList?: (dom: JQuery) => void;
+    addEditDashboard?: (dashboard?: IGenericDashboard) => void;
     renderSettingPage?: () => void,
     showAdvanced?: () => void,
     showSimple?: () => void,
@@ -85,7 +86,7 @@ export interface IPluginSettingPage<T> {
 
 
 export abstract class PluginCore implements IPlugin {
-    static  getServerSetting(  settingId:string, defaultValue: any ):IServerSettings {
+    static  getServerSetting(  settingId:string, defaultValue: unknown ):IServerSettings {
 
         let val = "";
         for(let idx=0;idx<matrixSession.serverConfig.customerSettings.length;idx++) {
@@ -239,25 +240,7 @@ export abstract class PluginCore implements IPlugin {
         return this.enabledInContext;
     }
 
-    getProjectPages(): IProjectPageParam[] {
-        const pages: IProjectPageParam[] = [];
-        if (this.enableDashboard() && Plugin.config.dashboard.enabled) {
-            pages.push({
-                id: Plugin.config.dashboard.id,
-                title: Plugin.config.dashboard.title,
-                folder: Plugin.config.dashboard.parent,
-                order: Plugin.config.dashboard.order,
-                icon: Plugin.config.dashboard.icon,
-                usesFilters: true,
-                render: (_options: IPluginPanelOptions) => {
-                    const gd = new DashboardPage();
-                    gd.renderProjectPage();
-                },
-            });
-        }
-            
-        return pages;
-    }
+ 
 
 
     // ------------------------------------------------ plugin description (used by CI) ------------------------------------------------

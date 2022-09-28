@@ -20,10 +20,59 @@ export interface IServerSettings {
 * This you can use to save setting for one specific project.
 * The user can edit these in the admin through the Project Setting Page
 */
-export interface IProjectSettings {
-    /** example of a project setting */
-    myProjectSetting:string; 
+
+
+export interface IGenericDashboard{
+    enabled: boolean;
+    id: string;
+    icon: string;
+    title: string;
+    parent: string;
+    usesFilters: boolean,
+    order: number;
+    rows: IGenericDashboardRow[];
 }
+export interface IGenericDashboardRow {
+
+    title: string;
+    items: IGenericDashboardItem[];
+    height: string;
+    additionnalcss: string
+}
+export interface IGenericDashboardItem{
+    title: string;
+    cat: string;
+    type: "table"| "bargraph" | "piegraph";
+    width?: string;
+    mode: "mrql" | "itemSelector";
+    mrql?: string,
+    columns: string[];
+
+}
+
+export interface IFieldMap {
+    [key: string]: XRFieldTypeAnnotated
+}
+
+
+export interface IGenericDashboardTable extends IGenericDashboardItem {
+    type: "table";
+}
+export interface IGenericDashboardBarGraph extends IGenericDashboardItem {
+    type: "bargraph";
+}
+
+export interface IGenericDashboardPieGrah extends IGenericDashboardItem {
+    type: "piegraph";
+}
+
+
+
+export interface IProjectSettings {
+    dashboards: IGenericDashboard[];
+}
+
+
 
 /** Setting for custom fields 
 * 

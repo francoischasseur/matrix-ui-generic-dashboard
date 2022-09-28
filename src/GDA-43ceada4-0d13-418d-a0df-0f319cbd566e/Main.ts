@@ -1,5 +1,7 @@
 
 import{ PluginCore,IPluginConfig} from "./core/PluginCore"
+import { DashboardPage } from "./DashboardPage";
+import { ProjectSettingsPage } from "./ProjectSettingsPage";
 /** This class is allows you to configure the features of your plugin.
  * 
  *  You can also implement functions to into the plugin (at start in the constructor, when loading a project, when loading an item)
@@ -20,7 +22,7 @@ export class Plugin extends PluginCore {
             id: "GDACustomerSettings",
             title: "GDA customer settings page",
             type: "GDAcs",
-            enabled: true,
+            enabled: false,
             defaultSettings: {
                 myServerSetting: "default value for setting defined in Interfaces.ts",
             },
@@ -33,15 +35,15 @@ export class Plugin extends PluginCore {
         */
         projectSettingsPage: {
             id: "GDAprojectsettings",
-            title: "GDA projectsettings page",
+            title: "Generic dashboard admin page",
             type:"GDAps",
             enabled: true,
             defaultSettings: {
-                myProjectSetting:  "default value for setting defined in Interfaces.ts",
+                dashboards: []
             },
             settingName: "GDA_settings",
-            help: "This is my help text",
-            helpUrl:"https://docs23.matrixreq.com"
+            help: "",
+            helpUrl:""
         },
         /*  Add an entry in the tool menu of an item or folder - set enabled to false if not needed.
             The tool itself is implemented in the _Tool.ts 
@@ -54,7 +56,7 @@ export class Plugin extends PluginCore {
             The field itself is implemented in the _Control.ts 
         */
         field: {
-            enabled: true,
+            enabled: false,
             fieldType: "matrix_ui_generic_dashboard",
             title: "matrix_ui_generic_dashboard-field",
             fieldConfigOptions: {
@@ -111,6 +113,34 @@ export class Plugin extends PluginCore {
         // if not:
         // this.enabledInContext = false;
     }
+
+
+    getProjectPages(): IProjectPageParam[] {
+        const pages: IProjectPageParam[] = [];
+
+        const dashboardSettings = ProjectSettingsPage().settings(); 
+        for (let i = 0; i < dashboardSettings.dashboards.length; i++) {
+            const dashboard = dashboardSettings.dashboards[i];
+            if (dashboard.enabled == true) {
+                pages.push({
+                    id: dashboard.id,
+                    title: dashboard.title,
+                    icon: dashboard.icon,
+                    order: dashboard.order,
+                    usesFilters: dashboard.usesFilters,
+                    folder: dashboard.parent,
+                    render: () => {
+                        let d = new DashboardPage(dashboard);
+                        d.renderProjectPage();
+                     } 
+                });
+            }
+        }
+            
+        return pages;
+    }
+
+    
 
     /** this method is called just before the rendering of an item is done
     * It is also called when opening the create item dialog.
