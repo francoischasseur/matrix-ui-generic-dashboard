@@ -222,18 +222,22 @@ function displayRowTable(ui: JQuery, self:IPluginSettingPage <IProjectSettings>,
                 addEditTable(row, self).then(() => {
                     displayRowTable(ui, self, dashboard);
                 });
-                contextMenu.hide();
+                contextMenu.remove();
              }));
             
             $("ul", contextMenu).append($("<li><a href='#'>Add a new pie chart</a></li>").on("click", () => {
                     addEditPieChart(row, self).then(() => { 
                           displayRowTable(ui, self, dashboard);
                     });
-                contextMenu.hide();
+                    contextMenu.remove();
+
             }));
 
             $("ul", contextMenu).append($("<li><a href='#'>Add a new bar chart</a></li>").on("click", () => {
-                contextMenu.hide();
+        
+                addEditBarChart(row, self).then(() => { });
+                contextMenu.remove();
+                
              }));
             contextMenu.css("left", event.pageX);
             contextMenu.css("top", event.pageY);            
@@ -312,6 +316,7 @@ function addEditDashboardLines(self: IPluginSettingPage<IProjectSettings>, dashb
         true,
         () => {
             dlg.remove();
+            $("#addPanelCtxMenu").remove();
         },
         () => {
         },
@@ -477,6 +482,7 @@ function getAllCat():string[] {
 }
 function addEditBarChart(row: IGenericDashboardRow, self: IPluginSettingPage<IProjectSettings>, bar?: IGenericDashboardBarGraph): JQueryDeferred<void> {
     let defered = $.Deferred();
+    ml.UI.showError("Not implemented yet", "....");
     defered.resolve();
     return defered;
 }
