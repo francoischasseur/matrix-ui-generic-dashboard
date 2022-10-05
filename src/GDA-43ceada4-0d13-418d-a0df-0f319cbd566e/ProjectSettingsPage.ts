@@ -195,7 +195,9 @@ import { Plugin } from "./Main";
 function displayRowTable(ui: JQuery, self:IPluginSettingPage <IProjectSettings>, dashboard: IGenericDashboard) {
     ui.empty();
     let addButton = $("<button class='btn btn-link ' style='float:right'>Add new line</button>").on("click", () => {
-        addEditDashboardRow(self, dashboard);
+        addEditDashboardRow(self, dashboard).always(() => {
+            displayRowTable(ui, self, dashboard)
+        });
     });
     ui.append(addButton);
     let table = $("<table class='table table-striped table-hover'></table>");
