@@ -237,7 +237,7 @@ function displayRowTable(ui: JQuery, self:IPluginSettingPage <IProjectSettings>,
         
                 addEditBarChart(row, self).then(() => { });
                 contextMenu.remove();
-                
+
              }));
             contextMenu.css("left", event.pageX);
             contextMenu.css("top", event.pageY);            
@@ -325,7 +325,6 @@ function addEditDashboardLines(self: IPluginSettingPage<IProjectSettings>, dashb
 }
 
 function addEditDashboardRow(self: IPluginSettingPage<IProjectSettings>, dashboard: IGenericDashboard, row?: IGenericDashboardRow): JQueryDeferred<void> {
-    let leditor = new LineEditor();
     let defered = $.Deferred();
 
     let newRow: IGenericDashboardRow = { title: "", additionnalcss: "", height: "", items: [] };

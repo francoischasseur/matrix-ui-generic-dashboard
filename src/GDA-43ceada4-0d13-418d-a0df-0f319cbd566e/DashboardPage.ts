@@ -259,7 +259,7 @@ export class DashboardPage {
         }
 
 
-        const chart = c3.generate({
+        c3.generate({
             bindto: "#" + id,
             data: {
                 columns: cols,
@@ -283,7 +283,7 @@ export class DashboardPage {
             },
             tooltip: {
                 format: {
-                    value: function (value: any, ratio: any, id: any, index: any) { return value; }
+                    value: (value: c3.Primitive, ratio: number, id: string, index: number) => { return value.toLocaleString(); }
                 }
             }
 
