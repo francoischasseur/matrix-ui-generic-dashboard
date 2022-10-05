@@ -1,5 +1,5 @@
 import { IPluginSettingPage } from "./core/PluginCore";
-import { IGenericDashboard,  IGenericDashboardRow, IGenericDashboardTable, IProjectSettings } from "./Interfaces";
+import { IGenericDashboard,  IGenericDashboardRow, IGenericDashboardTable, IGenericDashboardPieGrah, IProjectSettings, IGenericDashboardBarGraph } from "./Interfaces";
 import { Plugin } from "./Main";
 
     /* project Setting page closure*/
@@ -14,9 +14,30 @@ import { Plugin } from "./Main";
         self.getSettingsDOM = (settings:IProjectSettings): JQuery => {
             
             return $(`
+                 <style> 
+                    .deleteButton{
+                        border: none !important;
+                        background: none !important;
+                        position:absolute !important;
+                        left:20px;
+                    }
+                    .deleteButton:hover{
+                        box-shadow: none !important;
+                        text-decoration: underline !important;
+                    }
+                    #addPanelCtxMenu{
+                        display:block;
+                         background:white; 
+                         padding:5px; 
+                         position: absolute; 
+                         z-index:99999;
+                          border:solid 1px #AAA;
+                    }
+
+                 </style>
                 <div class="panel-body-v-scroll fillHeight">
                     <div id="controls"></div>
-                    <div id="dashboards"></div>
+                    <div id="dashboards"></div> 
                 </div>
                 `);
         };
@@ -151,8 +172,13 @@ import { Plugin } from "./Main";
                 actions.append($(`<button class='btn btn-link btn-sm'><i class='fal fa-chart-line'></i></button>`).on("click", () => {
                    addEditDashboardLines(self, dashboard);
                 }));
-
-                actions.append($(`<button class='btn btn-link btn-sm'><i class='fa fa-trash-alt'></i></button>`).on("click", () => {
+                actions.append($(`<button class='btn btn-link btn-sm'><i class='fal fa-trash-alt'></i></button>`).on("click", () => {
+                    self.settingsChanged.dashboards = self.settingsChanged.dashboards.filter(d=> d.id != dashboard.id);
+                    self.paramChanged();
+                    self.showSimple();
+                }));
+                actions.append($(`<button class='btn btn-link btn-sm'><i class='fal fa-external-link'></i></button>`).on("click", () => {
+                    window.open(`${matrixBaseUrl}/${self.getProject()}/${dashboard.id}`);
                 }));
                 row.append(actions);
                 table.append(row);
@@ -183,22 +209,32 @@ function displayRowTable(ui: JQuery, self:IPluginSettingPage <IProjectSettings>,
         let panels = $("<td></td>");
         panels.append($(`<button class='btn btn-link btn-sm'><i class='fal fa-plus-circle'></i></button>`).on("click", (event) => { 
             $("#addPanelCtxMenu").remove();
-            let contextMenu = $(`<div id="addPanelCtxMenu" style="display:block; background:white; padding:5px; position: absolute; z-index:99999; border:solid 1px #AAA; "></div>`);
+            let contextMenu = $(`<div id="addPanelCtxMenu" style=" ">
+            </div>`);
             contextMenu.appendTo("body");
-            contextMenu.append($("<ul></ul>"));
+            contextMenu.append($("<div><ul class='dropdown-menu' style='display:block' ></ul></div>"));
             
-            $("ul", contextMenu).append("<li><a href='#'>Add a new table</a></li>").on("click", () => {
-                addEditTable(row, self);
-                contextMenu.hide();
-             });
+            $("ul", contextMenu).append("<li class='disabled'><button class='btn btn-xs btn-link' style='position:absolute;right:-4px; top:-4px;'><i class='fa fa-times-circle'></i> </button><li>");
             
-            $("ul", contextMenu).append("<li><a href='#'>Add a new pie chart</a></li>").on("click", () => {
-                contextMenu.hide();
-            });
+            $("button", contextMenu) .click(() => { contextMenu.remove() });
 
-            $("ul", contextMenu).append("<li><a href='#'>Add a new bar chart</a></li>").on("click", () => {
+            $("ul", contextMenu).append($("<li><a href='#'>Add a new table</a></li>").on("click", () => {
+                addEditTable(row, self).then(() => {
+                    displayRowTable(ui, self, dashboard);
+                });
                 contextMenu.hide();
-             });
+             }));
+            
+            $("ul", contextMenu).append($("<li><a href='#'>Add a new pie chart</a></li>").on("click", () => {
+                    addEditPieChart(row, self).then(() => { 
+                          displayRowTable(ui, self, dashboard);
+                    });
+                contextMenu.hide();
+            }));
+
+            $("ul", contextMenu).append($("<li><a href='#'>Add a new bar chart</a></li>").on("click", () => {
+                contextMenu.hide();
+             }));
             contextMenu.css("left", event.pageX);
             contextMenu.css("top", event.pageY);            
         }));
@@ -206,10 +242,36 @@ function displayRowTable(ui: JQuery, self:IPluginSettingPage <IProjectSettings>,
         for (let i = 0; i < row.items.length; i++) {
             let panel = row.items[i];
             let panelButton = $("<button class='btn btn-link btn-sm'></button>");
-            panelButton.append($(`<i class='fal fa-table'></i>`));
+            
+            switch (panel.type) { 
+                case "table":
+                    panelButton.append($("<i class='fal fa-table'></i>"));
+                    break;
+                case "piegraph":
+                    panelButton.append($("<i class='fal fa-chart-pie'></i>"));
+                    break;
+                case "bargraph":
+                    panelButton.append($("<i class='fal fa-chart-bar'></i>"));
+                    break;
+
+            }
             panelButton.on("click", () => {
-                if (panel.type == "table") {
-                    addEditTable(row, self, <IGenericDashboardTable>panel);
+                switch (panel.type) {
+                    case "table":
+                        addEditTable(row, self, <IGenericDashboardTable>panel).then(() => {
+                            displayRowTable(ui, self, dashboard);
+                        });
+                        break;
+                    case "piegraph":
+                        addEditPieChart(row, self, <IGenericDashboardPieGrah>panel).then(() => {
+                            displayRowTable(ui, self, dashboard);
+                        });
+                        break;
+                    case "bargraph":
+                        addEditBarChart(row, self, <IGenericDashboardBarGraph>panel).then(() => {
+                            displayRowTable(ui, self, dashboard);
+                        });
+                        break;
                 }
             });
             panels.append(panelButton);
@@ -241,14 +303,6 @@ function addEditDashboardLines(self: IPluginSettingPage<IProjectSettings>, dashb
             class: 'btnDoIt',
             click: function () {
 
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (<any>dlg).dialog("close");
-            }
-        }, {
-            text: 'Cancel',
-            class: 'btnCancelIt',
-            click: function () {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (<any>dlg).dialog("close");
             }
@@ -265,85 +319,244 @@ function addEditDashboardLines(self: IPluginSettingPage<IProjectSettings>, dashb
     );
 }
 
-function addEditDashboardRow(self: IPluginSettingPage<IProjectSettings>, dashboard: IGenericDashboard, row?: IGenericDashboardRow):JQueryDeferred<void> {
+function addEditDashboardRow(self: IPluginSettingPage<IProjectSettings>, dashboard: IGenericDashboard, row?: IGenericDashboardRow): JQueryDeferred<void> {
     let leditor = new LineEditor();
     let defered = $.Deferred();
 
     let newRow: IGenericDashboardRow = { title: "", additionnalcss: "", height: "", items: [] };
     if (row) {
         newRow = { ...newRow, ...row };
-     }
-    let editorLines: ILineEditorLine[] = [{ help: "Title", value: newRow.title, type: "textline",required: true  },
-        { help: "Height", value: newRow.height, type: "textline",required: false  },
-        { help: "Additionnal CSS", value: newRow.additionnalcss, type: "textline"}];
-     
-    leditor.showDialog("Add a new line", 350, editorLines, (newLines) => { 
+    }
+   
+   
+    let dlg = $("<div>").appendTo($("body"));
+    let ui = $("<div style='height:100%;width:100%'>");
+   
+    ml.UI.addTextInput(ui, "Title", newRow, "title", undefined);
+    ml.UI.addTextInput(ui, "Height", newRow, "height", undefined);
+    ml.UI.addTextInput(ui, "Additionnal CSS", newRow, "additionnalcss", undefined);
+    let buttons = [{
+        text: 'Okay',
+        class: 'btnDoIt',
+        click: function () {
+            // Let's save here. 
+            if (row) {
+                let index = dashboard.rows.indexOf(row);
+                dashboard.rows[index] = newRow;
+            }
+            else {
+                dashboard.rows.push(newRow);
+            }
+            self.paramChanged();
 
-        newRow.title = newLines[0].value;
-        newRow.height = newLines[1].value;
-        newRow.additionnalcss = newLines[2].value;
-        if (row)
-        {
-            let index = dashboard.rows.indexOf(row); 
-            dashboard.rows[index] = newRow;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (<any>dlg).dialog("close");
+            defered.resolve();
         }
-        else {
-            dashboard.rows.push(newRow);
+    } ];
+
+
+   
+    
+    
+    ml.UI.showDialog(dlg, row == undefined ?"Adding a new panel": "Editing panel", ui, 800, 600,
+        buttons ,
+        UIToolsEnum.Scroll.Vertical,
+        true,
+        true,
+        () => { 
+            defered.reject();
+        },
+        () => {
+        },
+        () => { }
+    );
+   
+   
+    return defered;
+}
+function addEditTable(row: IGenericDashboardRow, self: IPluginSettingPage<IProjectSettings>, table?: IGenericDashboardTable): JQueryDeferred<void> {
+    
+    let defered = $.Deferred();
+    let newTable: IGenericDashboardTable = { title: "", cat: "", fields: [], mrql: "", type: "table", width: "100%", mode: "itemSelector" };
+    if (table) {
+        newTable = { ...newTable, ...table };
+    }
+    let dlg = $("<div>").appendTo($("body"));
+    let ui = $("<div>");
+    
+    let allCat = getAllCat()
+  
+
+    let allField: IDropdownOption[] = getAllFields(allCat);
+    ml.UI.addTextInput(ui, "Title", newTable, "title", undefined);
+    ml.UI.addTextInput(ui, "Width", newTable, "Width", undefined);
+    ml.UI.addDropdownToValue(ui, "Mode", newTable, "mode", [{ id: "itemSelector", label: "Item selector" }, { id: "mrql", label: "MRQL" }], false, false,
+        undefined, "Select a mode");
+    ml.UI.addTextInput(ui, "MRQL", newTable, "mrql", undefined);
+    ml.UI.addDropdownToValue(ui, "Category", newTable, "cat", allCat.map(cat => { return { id: cat, "label": cat } }), false, false,
+        undefined, "Select a category");
+    ml.UI.addDropdownToArray(ui, "Columns", newTable, "fields", allField, [], 100, false, false, undefined, "Select table columns");
+ 
+    let buttons = [{
+        text: 'Okay',
+        class: 'btnDoIt',
+        click: function () {
+
+            // Let's save here. 
+            if (newTable.fields.findIndex((o => o.indexOf(newTable.cat + "#") != 0)) >= 0) {
+                ml.UI.showError("Invalid selection", "You must select columns from the same category ")
+                return false;
+            }
+
+            if (table) {
+                let index = row.items.indexOf(table);
+                row.items[index] = newTable;
+            }
+            else {
+                row.items.push(newTable);
+            }
+            self.paramChanged();
+            defered.resolve();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (<any>dlg).dialog("close");
         }
-        self.paramChanged();
-        defered.resolve();
-        return true;
-    });
+    }];
+    
+     if (newTable)
+    {
+        buttons.push({
+            text: 'Delete',
+            class: 'deleteButton ',
+            click: function () {
+                if (table) {
+
+                    row.items = row.items.filter((item) => { return JSON.stringify(table) != JSON.stringify(item)  } )
+                    self.paramChanged();
+                    defered.resolve();
+                }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (<any>dlg).dialog("close");
+                return true;
+        }
+        });
+    }
+
+    ml.UI.showDialog(dlg, "Adding a new table", ui, 800,600,
+    buttons,
+    UIToolsEnum.Scroll.Vertical,
+    true,
+    true,
+        () => {
+            defered.reject();
+    },
+    () => {
+    },
+    () => { }
+);
+
+ 
+
     return defered;
 }
 
-function addEditTable(row: IGenericDashboardRow, self: IPluginSettingPage<IProjectSettings>, table?: IGenericDashboardTable):JQueryDeferred<void> {
-    
-    let lEditor = new LineEditor();
-    let defered = $.Deferred();
-    let newTable: IGenericDashboardTable = { title: "", cat: "", columns: [], mrql: "", type: "table", width: "100%", mode:"itemSelector" };
-    if (table) {
-        newTable = { ...newTable, ...table };
-    }       
-
+function getAllFields(allCat: string[]) {
     let allField: IDropdownOption[] = [];
-    let allCat = IC.getCategories().filter(c=> c!= "REPORT").filter(c=> c!= "DOC").filter(c=> c!= "SIGN").filter(c=> c!= "FOLDER")
     for (let cat of allCat) {
 
         let fields = IC.getFields(cat);
         for (let field of fields) {
-            allField.push({ id: cat+"#"+field.label, label: "[" +cat + "] " + field.label });
+            allField.push({ id: cat + "#" + field.label, label: "[" + cat + "] " + field.label });
         }
     }
+    return allField;
+}
 
-    let editorLines: ILineEditorLine[] = [{ help: "Title", value: newTable.title, type: "textline", required: true },
-        { help: "Width", value: newTable.width, type: "textline", required: false },
-        { help:"mode", value:newTable.mode, type:"select", options:[{id:"itemSelector", label:"Item selector"}, {id:"mrql", label:"MRQL"}], required:true},
-        { help: "Mrql", value: newTable.mrql, type: "textline", required: false },
-        { help: "Category", value: newTable.cat, type: "select", required: false, options: allCat.map((c => { return { id: c, label: c } })) },
-        { help: "Columns", multiple: true, value: newTable.columns.join(","), type: "select", required: true , options: allField }];
+function getAllCat():string[] {
+    return IC.getCategories().filter(c => c != "REPORT").filter(c => c != "DOC").filter(c => c != "SIGN").filter(c => c != "FOLDER");
+}
+function addEditBarChart(row: IGenericDashboardRow, self: IPluginSettingPage<IProjectSettings>, bar?: IGenericDashboardBarGraph): JQueryDeferred<void> {
+    let defered = $.Deferred();
+    defered.resolve();
+    return defered;
+}
+function addEditPieChart(row: IGenericDashboardRow, self: IPluginSettingPage<IProjectSettings>, pie?: IGenericDashboardPieGrah): JQueryDeferred<void> {
+    let defered = $.Deferred();
+    let newPie: IGenericDashboardPieGrah = { title: "", cat: "", field: "", mrql: "", type: "piegraph", width: "100%", mode: "itemSelector" };
+    if (pie) {
+        newPie = { ...newPie, ...pie };
+    }
+    let dlg = $("<div>").appendTo($("body"));
+    let ui = $("<div>");
+    
+    let allCat = getAllCat()
+  
 
-    lEditor.showDialog("Add a new panel", 900, editorLines, (newLines) => { 
-
-        newTable.title = newLines[0].value;
-        newTable.width = newLines[1].value;
-        newTable.mode = newLines[2].value == "itemSelector" ? "itemSelector" : "mrql";
-        newTable.mrql = newLines[3].value;
-        newTable.cat = newLines[4].value;
-        newTable.columns = newLines[5].value.split(",");
-        if (table)
-        {   
-            let index = row.items.indexOf(table);
-            row.items[index] = newTable;
+    let allField: IDropdownOption[] = getAllFields(allCat);
+    ml.UI.addTextInput(ui, "Title", newPie, "title", undefined);
+    ml.UI.addTextInput(ui, "Width", newPie, "Width", undefined);
+    ml.UI.addDropdownToValue(ui, "Mode", newPie, "mode", [{ id: "itemSelector", label: "Item selector" }, { id: "mrql", label: "MRQL" }], false, false,
+        undefined, "Select a mode");
+    ml.UI.addTextInput(ui, "MRQL", newPie, "mrql", undefined);
+    ml.UI.addDropdownToValue(ui, "field", newPie, "field", allField, false, false, undefined, "Select field");
+ 
+    let buttons = [{
+        text: 'Okay',
+        class: 'btnDoIt',
+        click: function () {
+            // Let's save here. 
+            if (! newPie.field) {
+                ml.UI.showError("Invalid selection", "You must select a field.")
+                return false;
+            }
+            newPie.cat = newPie.field.split("#")[0]
+            if (pie) {
+                let index = row.items.indexOf(pie);
+                row.items[index] = newPie;
+            }
+            else {
+                row.items.push(newPie);
+            }
+            self.paramChanged();
+            defered.resolve();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (<any>dlg).dialog("close");
         }
-        else {
-            row.items.push(newTable);
-        }
+    }];
+    
+     if (newPie)
+    {
+        buttons.push({
+            text: 'Delete',
+            class: 'deleteButton ',
+            click: function () {
+                if (newPie) {
 
-        self.paramChanged();
-        defered.resolve();
-        return true;
-    });
+                    row.items = row.items.filter((item) => { return JSON.stringify(pie) != JSON.stringify(item)  } )
+                    self.paramChanged();
+                    defered.resolve();
+                }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (<any>dlg).dialog("close");
+                return true;
+        }
+        });
+    }
+
+    ml.UI.showDialog(dlg, "Adding a new table", ui, 800,600,
+    buttons,
+    UIToolsEnum.Scroll.Vertical,
+    true,
+    true,
+        () => {
+            defered.reject();
+    },
+    () => {
+    },
+    () => { }
+);
+
+ 
 
     return defered;
 }

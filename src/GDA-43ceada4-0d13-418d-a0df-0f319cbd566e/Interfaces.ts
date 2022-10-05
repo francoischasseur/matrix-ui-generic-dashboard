@@ -46,7 +46,6 @@ export interface IGenericDashboardItem{
     width?: string;
     mode: "mrql" | "itemSelector";
     mrql?: string,
-    columns: string[];
 
 }
 
@@ -57,13 +56,18 @@ export interface IFieldMap {
 
 export interface IGenericDashboardTable extends IGenericDashboardItem {
     type: "table";
+    fields: string[];
+
 }
 export interface IGenericDashboardBarGraph extends IGenericDashboardItem {
     type: "bargraph";
+
 }
 
 export interface IGenericDashboardPieGrah extends IGenericDashboardItem {
     type: "piegraph";
+    field: string;
+
 }
 
 

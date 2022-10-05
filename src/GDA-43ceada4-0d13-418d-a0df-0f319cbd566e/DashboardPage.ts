@@ -1,13 +1,23 @@
-import { IFieldMap, IGenericDashboard, IGenericDashboardItem, IGenericDashboardTable, IProjectSettings } from "./Interfaces";
+import {
+    IFieldMap,
+    IGenericDashboard,
+    IGenericDashboardItem,
+    IGenericDashboardPieGrah,
+    IGenericDashboardTable,
+    IProjectSettings,
+} from "./Interfaces";
 import { Plugin } from "./Main";
 
 // eslint-disable-next-line no-unused-vars
 export class DashboardPage {
     settings: IProjectSettings;
-    dashboard: IGenericDashboard; 
+    dashboard: IGenericDashboard;
 
     constructor(dashboard: IGenericDashboard) {
-        this.settings = { ...Plugin.config.projectSettingsPage.defaultSettings, ...IC.getSettingJSON(Plugin.config.projectSettingsPage.settingName, {}) } ;
+        this.settings = {
+            ...Plugin.config.projectSettingsPage.defaultSettings,
+            ...IC.getSettingJSON(Plugin.config.projectSettingsPage.settingName, {}),
+        };
         this.dashboard = dashboard;
     }
 
@@ -25,7 +35,6 @@ export class DashboardPage {
 
     /** Add interactive element in this function */
     renderProjectPage() {
-
         const control = this.getDashboardDOM();
         app.itemForm.append(
             ml.UI.getPageTitle(
@@ -38,12 +47,12 @@ export class DashboardPage {
                 }
             )
         );
-        let container = $(`<div class="panel-body-v-scroll fillHeight"  style="max-height:calc(100% - 120px)"/>`);
+        let container = $(
+            `<div class="panel-body-v-scroll fillHeight"  style="max-height:calc(100% - 120px)"/>`
+        );
         app.itemForm.append(container);
 
-
-        this.dashboard.rows.forEach(row => {
-
+        this.dashboard.rows.forEach((row) => {
             let divRow = $("<div class='' style='display:flex;'/> ");
 
             if (row.height != undefined) {
@@ -51,129 +60,259 @@ export class DashboardPage {
             }
 
             if (row.additionnalcss != undefined) {
-              divRow.attr("style", divRow.attr("style") + row.additionnalcss);
+                divRow.attr("style", divRow.attr("style") + row.additionnalcss);
             }
             container.append(divRow);
 
-            row.items.forEach(element => {
+            row.items.forEach((element) => {
                 this.renderElement(element, divRow);
-
             });
-
         });
-
 
         app.itemForm.append(control);
     }
-    static getPanel(element: IGenericDashboardItem, render:(element: IGenericDashboardItem, items?:ISelectedElement[])=>void ): JQuery {
+    static getPanel(
+        element: IGenericDashboardItem,
+        render: (element: IGenericDashboardItem, items?: ISelectedElement[]) => void,
+        wait: JQuery
+    ): JQuery {
         let panel = $(`<div class="panel panel-default generic-dashboard-panel" style="margin:5px;">
                           <div class="panel-heading">
                               <h3 class="panel-title" >${element.title}</h3>
                              
                           </div>
                           <div class="panel-options"></div>
-                          <div class="panel-body" style="overflow-y:auto; max-height:calc(100% - 40px)"></div>
+                          <div class="panel-body" style="overflow-y:auto; max-height:calc(100% - ${
+                              element.mode == "itemSelector" ? "90px" : "40px"
+                          })"></div>
                       </div>`);
         panel.css("width", element.width);
-        ml.UI.copyBuffer($(".panel-heading h3", panel), "Copy  to clipboard", $(".panel-body", panel), panel, (copied: JQuery) => {
+        ml.UI.copyBuffer(
+            $(".panel-heading h3", panel),
+            "Copy  to clipboard",
+            $(".panel-body", panel),
+            panel,
+            (copied: JQuery) => {
+                ml.UI.fixC3ForCopy(copied);
 
-            ml.UI.fixC3ForCopy(copied);
+                let $temp = $("<div>");
+                $("body").append($temp);
 
-            let $temp = $("<div>");
-            $("body").append($temp);
+                $temp
+                    .attr("contenteditable", "true")
+                    .html(panel.html())
+                    .select()
+                    .on("focus", function () {
+                        document.execCommand("selectAll", false, null);
+                    })
+                    .focus();
+                document.execCommand("copy");
+                $temp.remove();
+            }
+        );
 
-            $temp.attr("contenteditable", "true")
-                .html(panel.html()).select()
-                .on("focus", function () { document.execCommand('selectAll', false, null); })
-                .focus();
-            document.execCommand("copy");
-            $temp.remove();
-
-        });
-
-        if (element.mode == "itemSelector") { 
+        if (element.mode == "itemSelector") {
             let baseControl = $("<div>").appendTo($(".panel-options", panel));
             let itemSelector = new ItemSelectionImpl(baseControl);
-
             let selection = projectStorage.getItem(element.cat + "_" + element.title);
-           
+
             itemSelector.init({
                 canEdit: true,
                 controlState: ControlState.FormEdit,
                 help: "",
                 valueChanged: () => {
-                    
                     let v = itemSelector.getValue();
-                    let items:ISelectedElement[] = JSON.parse(v);
-                    if (items != undefined)
-                        render(element, items);
-                    projectStorage.setItem(element.cat+"_"+element.title, JSON.stringify(items.map(item=> item.to)));
-                    
-                    
+                    let items: ISelectedElement[] = JSON.parse(v);
+                    if (items != undefined) render(element, items);
+                    projectStorage.setItem(
+                        element.cat + "_" + element.title,
+                        JSON.stringify(items.map((item) => item.to))
+                    );
                 },
                 parameter: {
                     prefix: "Include the following Items :",
                     buttonName: "Select items/folder(s)",
                     showOnly: [element.cat],
-                    singleFolderOnly:false,
-                }
+                    singleFolderOnly: false,
+                },
             });
-            
-            if (selection ) {
-                let parsedSelection:string[] = JSON.parse(selection);
-                if(parsedSelection.length>0)
+
+            if (selection) {
+                let parsedSelection: string[] = JSON.parse(selection);
+                if (parsedSelection.length > 0) {
                     itemSelector.setValue(parsedSelection);
+                } else {
+                    panel.append(wait);
+                }
             }
-
+        } else {
+            panel.append(wait);
         }
-        
+
         return panel;
-
     }
-
 
     renderElement(element: IGenericDashboardItem, divRow: JQuery<HTMLElement>) {
         let that = this;
+        let wait = ml.UI.getSpinningWait();
+
         let render = async (element: IGenericDashboardItem, items?: ISelectedElement[]) => {
             let needles = undefined;
-            let mrqlQuery =this.buildMrql(element,items);
+            let mrqlQuery = this.buildMrql(element, items);
             needles = await restConnection.getProject(mrqlQuery);
             let panelBody = $(".panel-body", panel);
             panelBody.empty();
             switch (element.type) {
                 case "table":
-                    that.renderTable(<IGenericDashboardTable> element, panelBody, needles);
+                    that.renderTable(<IGenericDashboardTable>element, panelBody, needles);
+                    break;
+                case "piegraph":
+                    that.renderPieGraph(<IGenericDashboardPieGrah>element, panelBody, needles);
+                    break;
             }
-        }
-        let panel = DashboardPage.getPanel(element, render);
+            if (app["waitForMainTree"] != null)
+                app["waitForMainTree"](() => $("table", divRow).highlightReferences());
+            else {
+                setTimeout(() => $("table", divRow).highlightReferences(), 2000);
+            }
+            wait.remove();
+        };
+        let panel = DashboardPage.getPanel(element, render, wait);
 
         if (element.mode != "itemSelector") {
             render(element);
         }
 
         divRow.append(panel);
-       
     }
-    buildMrql(element: IGenericDashboardItem, items):string{
+    static getFields(cat: string, dataColumns: string[]): IFieldMap {
+        let params: IFieldMap = {};
+        if (dataColumns != undefined) {
+            dataColumns.forEach((e) => {
+                params[e] = IC.getFieldByName(cat, e.split("#")[1]);
+            })
+        }
+        return params;
+    }
+
+    static getValueOf(needle: XRTrimNeedleItem, field: XRFieldTypeAnnotated): string {
+        let val = "";
+        if (field != undefined) {
+            needle.fieldVal.forEach((a) => {
+                if (a.id == field.id) {
+                    val = a.value;
+                }
+            });
+
+        }
+
+        return val;
+    }
+    renderPieGraph(element: IGenericDashboardPieGrah, panelBody: JQuery<HTMLElement>, result: XRGetProject_Needle_TrimNeedle) {
+
+
+        let params: IFieldMap = {};
+        params = DashboardPage.getFields(element.cat, [element.field]);
         
+        let id = "pie-" + (Math.random() * 1000).toFixed(0);
+        let graph = $(`<div id='${id}'></div>`);
+
+        panelBody.append(graph);
+
+        let map: IAnyMap = {};
+
+
+        for (let key in params) {
+            let needleMap: INumberStringMap = {};
+            result.needles.forEach((needle) => {
+        
+                if (params[key].fieldType == "labels") {
+                    if (!needle.labels) {
+                        if (needleMap["No label"] == undefined) {
+                            needleMap["No label"] = 0;
+                        }
+                        needleMap["No label"]++;
+                    } else {
+                        needle.labels.split(",").forEach((label) => { 
+                            if (needleMap[label] == undefined) {
+                                needleMap[label] = 0;
+                            }
+                            needleMap[label]++;
+                        });
+                    }
+                } else {
+                    let val = DashboardPage.getValueOf(needle, params[key]);
+                    if (needleMap[val] == undefined) {
+                        needleMap[val] = 0;
+                    }
+                    needleMap[val]++;
+        
+                }
+            });
+            map[key] = needleMap;
+        }
+
+        let pieMap = map[element.field];
+        let cols = [];
+        for (let key in pieMap) {
+            cols.push([key, pieMap[key]]);
+        }
+
+
+        const chart = c3.generate({
+            bindto: "#" + id,
+            data: {
+                columns: cols,
+                type: 'pie',
+            },
+            pie: {
+                label: {
+                    format: function (value, ratio, id) {
+                        return (value);
+                    }
+                }
+
+            },
+            legend:
+            {
+                position: 'inset',
+                inset: {
+
+                    anchor: "top-right"
+                }
+            },
+            tooltip: {
+                format: {
+                    value: function (value: any, ratio: any, id: any, index: any) { return value; }
+                }
+            }
+
+        });
+    }
+    buildMrql(element: IGenericDashboardItem, items): string {
         let fieldsOut = [];
         let links = ["down", "up"];
-        let fields = this.getFields(element.cat, element.columns);
+        let fields: IFieldMap = {};
+
+        switch (element.type) {
+            case "table":
+                fields = DashboardPage.getFields(element.cat, (<IGenericDashboardTable>element).fields);
+                break;
+            case "piegraph":
+                fields = DashboardPage.getFields(element.cat, [(<IGenericDashboardPieGrah>element).field]);
+                break;
+        }
         for (let key in fields) {
             fieldsOut.push(fields[key]);
         }
-       
 
-        let mrqlPart = ""
+        let mrqlPart = "";
         if (element.mode != "itemSelector" && element.mrql != undefined) {
             mrqlPart += " AND " + element.mrql;
-        }
-        else {
+        } else {
             let itemsQueryParts = items.map((item) => {
-                if (item.to && item.to[0] === 'F')
-                    return " folderm =  " + item.to;
-                else
-                    return " id = " + item.to;
+                if (item.to && item.to[0] === "F") return " folderm =  " + item.to;
+                else return " id = " + item.to;
             });
             mrqlPart += " AND (" + itemsQueryParts.join(" OR ") + ")";
         }
@@ -182,56 +321,56 @@ export class DashboardPage {
         if (links.length > 0) {
             linksQueryPart = "&links=" + links.join(",");
         }
-        let mrql = `needle?search=mrql: category=${element.cat}${mrqlPart}&labels=1&fieldsOut=${fieldsOut.map((o) => { return o.id }).join(',')}${linksQueryPart}`;
+        let mrql = `needle?search=mrql: category=${
+            element.cat
+        }${mrqlPart}&labels=1&fieldsOut=${fieldsOut
+            .map((o) => {
+                return o.id;
+            })
+            .join(",")}${linksQueryPart}`;
 
         return mrql;
     }
-    getFields(cat: string, columns: string[]): IFieldMap {
-        let params: IFieldMap = {};
-        if (columns != undefined) {
-            columns.forEach((e) => {
-                params[e] = IC.getFieldByName(cat, e.split("#")[1]);
-            })
-        }
-        return params;
-    }
-    renderTable(element: IGenericDashboardTable, panel: JQuery<HTMLElement>, result: XRGetProject_Needle_TrimNeedle) {
-       
+
+    renderTable(
+        element: IGenericDashboardTable,
+        panel: JQuery<HTMLElement>,
+        result: XRGetProject_Needle_TrimNeedle
+    ) {
         let table = $("<table class='table table-striped table-bordered table-hover' />");
         let thead = $("<thead />");
         let tbody = $("<tbody />");
-        let fields = this.getFields(element.cat, element.columns);
-
+        let fields = DashboardPage.getFields(element.cat, element.fields);
 
         table.append(thead);
         table.append(tbody);
-        $( panel).append(table);
+        $(panel).append(table);
 
-        let columns = element.columns;
+        let columns = element.fields;
         let theadRow = $("<tr />");
         thead.append(theadRow);
         theadRow.append($("<th />").text("ID"));
-        columns.forEach(column => {
+        columns?.forEach((column) => {
             theadRow.append($("<th />").text(column.split("#")[1]));
         });
 
-        result.needles.forEach(needle => {
+        result.needles.forEach((needle) => {
             let tr = $("<tr />");
             tr.append($("<td />").text(ml.Item.parseRef(needle.itemOrFolderRef).id + "!"));
             tbody.append(tr);
-            columns.forEach(column => {
+            columns?.forEach((column) => {
                 let td = $("<td />");
                 let field = fields[column];
-                td.append(this.renderFieldValue(field, needle, element ))
+                td.append(this.renderFieldValue(field, needle, element));
                 tr.append(td);
-                
             });
         });
-        $("table",app.itemForm).highlightReferences();
     }
-    renderFieldValue(field: XRFieldTypeAnnotated, needle: XRTrimNeedleItem,element: IGenericDashboardTable):JQuery<HTMLElement> {
-
-
+    renderFieldValue(
+        field: XRFieldTypeAnnotated,
+        needle: XRTrimNeedleItem,
+        element: IGenericDashboardTable
+    ): JQuery<HTMLElement> {
         let output = $("<span/>");
 
         let fieldType = field.fieldType;
@@ -242,48 +381,57 @@ export class DashboardPage {
             ui.control.append($("<ul/>"));
             if (needle.downLinkList != undefined)
                 needle.downLinkList.forEach((item) => {
-                    $("ul", ui.control).append($("<li>").refLink({
-                        id: ml.Item.parseRef(item.itemRef).id, title: item.title, style: refLinkStyle.link, tooltip: refLinkTooltip.html, hideTitle: false
-                    }))
+                    $("ul", ui.control).append(
+                        $("<li>").refLink({
+                            id: ml.Item.parseRef(item.itemRef).id,
+                            title: item.title,
+                            style: refLinkStyle.link,
+                            tooltip: refLinkTooltip.html,
+                            hideTitle: false,
+                        })
+                    );
                 });
-                return output;
-
+            return output;
         } else if (fieldType == "uplinkinfo") {
             ui.control.append($("<ul/>"));
             if (needle.upLinkList != undefined)
                 needle.upLinkList.forEach((item) => {
-                    $("ul", ui.control).append($("<li>").refLink({
-                        id: ml.Item.parseRef(item.itemRef).id, title: item.title, style: refLinkStyle.link, tooltip: refLinkTooltip.html, hideTitle: false
-                    }))
+                    $("ul", ui.control).append(
+                        $("<li>").refLink({
+                            id: ml.Item.parseRef(item.itemRef).id,
+                            title: item.title,
+                            style: refLinkStyle.link,
+                            tooltip: refLinkTooltip.html,
+                            hideTitle: false,
+                        })
+                    );
                 });
-                return output;
-
+            return output;
         }
 
-
-
-        let idx = IC.getItemConfiguration(element.cat).fieldList.findIndex(o => o.id == field.id);
-        let valueIdx = needle.fieldVal.findIndex(o => o.id == field.id);
-        if (idx == -1 || (fieldType != "labels" && valueIdx == -1))
-            return;
-        let ctrlParameter = { canEdit: false, fieldValue: "", isItem: true, help: "", controlState: ControlState.Tooltip, parameter: IC.getItemConfiguration(element.cat).fieldList[idx].parameterJson };
+        let idx = IC.getItemConfiguration(element.cat).fieldList.findIndex((o) => o.id == field.id);
+        let valueIdx = needle.fieldVal.findIndex((o) => o.id == field.id);
+        if (idx == -1 || (fieldType != "labels" && valueIdx == -1)) return;
+        let ctrlParameter = {
+            canEdit: false,
+            fieldValue: "",
+            isItem: true,
+            help: "",
+            controlState: ControlState.Tooltip,
+            parameter: IC.getItemConfiguration(element.cat).fieldList[idx].parameterJson,
+        };
         ctrlParameter.parameter.inlineHelp = "";
 
         if (fieldType != "labels") {
             ctrlParameter.fieldValue = needle.fieldVal[valueIdx].value;
-        }
-        else {
-
+        } else {
             let labels: string[] = [];
             if (needle.labels != undefined) {
-
                 labels = needle.labels.replace(/\(|\)/g, "").split(",");
                 ctrlParameter.fieldValue = JSON.stringify(labels);
                 ctrlParameter.parameter = { titleBarControl: ui.control };
-
             }
         }
-
 
         if (fieldType === "report") {
             ui.control.plainText(ml.JSON.setOptions(ctrlParameter, { parameter: { rows: 1 } }));
@@ -298,73 +446,97 @@ export class DashboardPage {
             ui.control.publishedContent(ctrlParameter);
         } else if (fieldType === "text") {
             ui.control.plainText(ctrlParameter);
-        }
-        else if (fieldType === "fileManager" || fieldType === "signCache") {
+        } else if (fieldType === "fileManager" || fieldType === "signCache") {
             ui.control.fileManager(ml.JSON.setOptions(ctrlParameter, { parameter: {} }));
         } else if (fieldType === "docFilter") {
             ui.control.docFilter(ml.JSON.setOptions(ctrlParameter, { help: "Document Filter" }));
         } else if (fieldType === "workflow") {
-            ui.control.workflowControl(<unknown>ml.JSON.setOptions(ctrlParameter, { parameter: {} }));
+            ui.control.workflowControl(
+                <unknown>ml.JSON.setOptions(ctrlParameter, { parameter: {} })
+            );
         } else if (fieldType === "sourceRef") {
-            // type should not exist 
+            // type should not exist
             ml.Logger.log("warning", "Found obsolete type sourceRef");
             ui.control.hidden(ctrlParameter);
         } else if (fieldType === "textline" || fieldType === "publishedTitle") {
-            ui.control.plainText(ml.JSON.setOptions(ctrlParameter, { parameter: { rows: 1, allowResize: false } }));
+            ui.control.plainText(
+                ml.JSON.setOptions(ctrlParameter, { parameter: { rows: 1, allowResize: false } })
+            );
         } else if (fieldType === "signatureControl") {
             ui.control.docSign(ctrlParameter);
         } else if (fieldType === "docReview") {
             ui.control.docReview(<unknown>ctrlParameter);
         } else if (fieldType === "user") {
-
             let userDropdown = ml.UI.SelectUserOrGroup.getUserDropDownOptions(
                 !ml.JSON.isFalse((<IUserSelect>ctrlParameter).parameter.showUsers), // by default show users, if not specified
-                ml.JSON.isTrue((<IUserSelect>ctrlParameter).parameter.showGroups)); // by default do not show groups
+                ml.JSON.isTrue((<IUserSelect>ctrlParameter).parameter.showGroups)
+            ); // by default do not show groups
 
             let groups: IDropdownGroup[] = null;
-            if (!ml.JSON.isFalse((<IUserSelect>ctrlParameter).parameter.showUsers) && ml.JSON.isTrue((<IUserSelect>ctrlParameter).parameter.showGroups)) {
+            if (
+                !ml.JSON.isFalse((<IUserSelect>ctrlParameter).parameter.showUsers) &&
+                ml.JSON.isTrue((<IUserSelect>ctrlParameter).parameter.showGroups)
+            ) {
                 groups = [];
                 groups.push({ value: "groups", label: "groups" });
                 groups.push({ value: "users", label: "users" });
             }
-            ui.control.mxDropdown(ml.JSON.setOptions(ctrlParameter, {
-                parameter: {
-                    placeholder: (<IUserSelect>ctrlParameter).parameter.placeholder ? (<IUserSelect>ctrlParameter).parameter.placeholder : "select user",
-                    // allow only users in project!
-                    create: false,
-                    options: userDropdown,
-                    maxItems: (<IUserSelect>ctrlParameter).parameter.maxItems ? (<IUserSelect>ctrlParameter).parameter.maxItems : 1,
-                    groups: groups
-                }
-            }));
-
+            ui.control.mxDropdown(
+                ml.JSON.setOptions(ctrlParameter, {
+                    parameter: {
+                        placeholder: (<IUserSelect>ctrlParameter).parameter.placeholder
+                            ? (<IUserSelect>ctrlParameter).parameter.placeholder
+                            : "select user",
+                        // allow only users in project!
+                        create: false,
+                        options: userDropdown,
+                        maxItems: (<IUserSelect>ctrlParameter).parameter.maxItems
+                            ? (<IUserSelect>ctrlParameter).parameter.maxItems
+                            : 1,
+                        groups: groups,
+                    },
+                })
+            );
         } else if (fieldType === "date") {
             ui.control.dateselect(ctrlParameter);
         } else if (fieldType === "dropdown") {
             ui.control.mxDropdown(ctrlParameter);
         } else if (fieldType === "crosslinks") {
-            ui.control.itemSelection(ml.JSON.setOptions(ctrlParameter, {
-                parameter: {
-                    linkTypes: (<IItemSelectionOptions>ctrlParameter).parameter.linkTypes ? (<IItemSelectionOptions>ctrlParameter).parameter.linkTypes : [],
-                    crossProject: true,
-                    prefix: (<IItemSelectionOptions>ctrlParameter).parameter.prefix ? (<IItemSelectionOptions>ctrlParameter).parameter.prefix : "Links",
-                }
-            }));
+            ui.control.itemSelection(
+                ml.JSON.setOptions(ctrlParameter, {
+                    parameter: {
+                        linkTypes: (<IItemSelectionOptions>ctrlParameter).parameter.linkTypes
+                            ? (<IItemSelectionOptions>ctrlParameter).parameter.linkTypes
+                            : [],
+                        crossProject: true,
+                        prefix: (<IItemSelectionOptions>ctrlParameter).parameter.prefix
+                            ? (<IItemSelectionOptions>ctrlParameter).parameter.prefix
+                            : "Links",
+                    },
+                })
+            );
         } else if (fieldType === "steplist") {
-            ui.control.tableCtrl(ml.JSON.setOptions(ctrlParameter, {
-                columns: [{ name: "Action", field: "action" }, { name: "Expected Behaviour", field: "expected" }]
-            }));
+            ui.control.tableCtrl(
+                ml.JSON.setOptions(ctrlParameter, {
+                    columns: [
+                        { name: "Action", field: "action" },
+                        { name: "Expected Behaviour", field: "expected" },
+                    ],
+                })
+            );
         } else if (fieldType === "risk") {
-            ui.control.riskCtrl(ml.JSON.setOptions(ctrlParameter, {
-            }));
+            ui.control.riskCtrl(ml.JSON.setOptions(ctrlParameter, {}));
         } else if (fieldType === "risk2") {
-            ui.control.riskCtrl2(<unknown>ml.JSON.setOptions(ctrlParameter, {
-            }));
+            ui.control.riskCtrl2(<unknown>ml.JSON.setOptions(ctrlParameter, {}));
         } else if (fieldType === "checkbox") {
             ui.control.checkBox(ctrlParameter);
         } else if (fieldType === "htmlForm") {
             ui.control.htmlform(ctrlParameter);
-        } else if (fieldType === "hidden" || fieldType === "filter_file" || fieldType === "signature") {
+        } else if (
+            fieldType === "hidden" ||
+            fieldType === "filter_file" ||
+            fieldType === "signature"
+        ) {
             ui.control.hidden(ctrlParameter);
         } else if (fieldType === "hyperlink") {
             ui.control.hyperlink(ctrlParameter);
@@ -377,28 +549,34 @@ export class DashboardPage {
             ui.control.sourceRef(ctrlParameter);
         } else if (fieldType === "markAsTemplate") {
             ui.control.markAsTemplate(ctrlParameter);
-     
         } else if (fieldType === "versionLive") {
             ui.control.hidden(ctrlParameter);
         } else if (fieldType === "version") {
             ui.control.hidden(ctrlParameter);
         } else if (fieldType === "labels") {
             ctrlParameter.canEdit = true;
-            ui.control.labelsControl(<unknown>ml.JSON.setOptions(ctrlParameter, { type: element.cat, isItem: true, controlState: ControlState.Tooltip, canEdit: true }));
+            ui.control.labelsControl(
+                <unknown>(
+                    ml.JSON.setOptions(ctrlParameter, {
+                        type: element.cat,
+                        isItem: true,
+                        controlState: ControlState.Tooltip,
+                        canEdit: true,
+                    })
+                )
+            );
         } else if (fieldType === "syncSourceInfo") {
             ui.control.syncSourceInfo(ctrlParameter);
         } else if (fieldType === "cascadingSelect") {
             ui.control.cascadingSelect(<unknown>ctrlParameter);
         } else if (fieldType === "gateControl") {
             ui.control.gateControl(<IGateControlControlOptions>ctrlParameter);
-        }
-        else {
+        } else {
             ui.control.errorControl(ctrlParameter);
         }
         return output;
-
     }
-  
+
     onResize() {
         /* Will be triggered when resizing. */
     }
